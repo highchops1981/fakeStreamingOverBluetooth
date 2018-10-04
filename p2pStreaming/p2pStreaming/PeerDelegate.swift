@@ -28,7 +28,6 @@ class PeerUtil:NSObject {
     var delegate: PeerDelegate?
     var webRTCdelegate: PeerDelegate?
     
-    var numOfCapture = 0
     var displayName: String = ""
     var serviceType: String = ""
     var peerId: MCPeerID? = nil
@@ -93,11 +92,6 @@ class PeerUtil:NSObject {
         
     }
     
-    func startStream() {
-        
-
-    }
-    
     func stopAdvertise() {
         
         advertiserAssistant?.stop()
@@ -126,21 +120,6 @@ class PeerUtil:NSObject {
         
     }
     
-//    func send(peerSignage: MultiPeer) {
-//
-//        let wrappedDictionary: WrappedDictionary = try! wrap(peerSignage)
-//
-//        if JSONSerialization.isValidJSONObject(wrappedDictionary) {
-//
-//            let serializationData: Data = try! JSONSerialization.data(withJSONObject: wrappedDictionary, options: JSONSerialization.WritingOptions.prettyPrinted)
-//            print("serializationData\(serializationData)")
-//
-//            try? session?.send(serializationData, toPeers: (session?.connectedPeers)!, with: .reliable)
-//
-//        }
-//
-//    }
-    
     func send(data:Data) {
         
         do {
@@ -151,63 +130,45 @@ class PeerUtil:NSObject {
         
     }
     
-    func send2(json:Dictionary<String,Any>) {
-        
-        print("send2")
-        print(json)
-        do {
-            let jsonData = try JSONSerialization.data(withJSONObject: json, options: JSONSerialization.WritingOptions.prettyPrinted)
-            try? session?.send(jsonData, toPeers: (session?.connectedPeers)!, with: .reliable)
-        } catch {
-            
-        }
-        
+func sendImageBuffer(buffer:CMSampleBuffer) {
+    
+    guard let imageBuffer:CVImageBuffer = CMSampleBufferGetImageBuffer(buffer) else {
+        return
     }
     
-    func sendImageBuffer(buffer:CMSampleBuffer) {
-        
-        print("sendImageBuffer")
-        
-        guard let imageBuffer:CVImageBuffer = CMSampleBufferGetImageBuffer(buffer) else {
-            return
-        }
-        
-        CVPixelBufferLockBaseAddress(imageBuffer, CVPixelBufferLockFlags(rawValue: 0))
-        guard let baseAddress:UnsafeMutableRawPointer = CVPixelBufferGetBaseAddressOfPlane(imageBuffer, 0) else {
-            return
-        }
-        
-        let bytesPerRow = CVPixelBufferGetBytesPerRow(imageBuffer)
-        //let width = CVPixelBufferGetWidth(imageBuffer)
-        let height = CVPixelBufferGetHeight(imageBuffer)
-        let data = NSData(bytes: baseAddress, length: bytesPerRow * height)
-        //let unsafePointer = data.bytes.bindMemory(to: UInt8.self, capacity: 1)
-        
-        
-        
-        try? session?.send(data as Data, toPeers: (session?.connectedPeers)!, with: .reliable)
-        
-//        do {
-//
-//            outputStream = try session?.startStream(withName: "stream", toPeer: (session?.connectedPeers.first)!)
-//            outputStream?.delegate = self
-//            outputStream?.write(unsafePointer, maxLength: data.length)
-//            outputStream?.schedule(in: .main, forMode: RunLoop.Mode.default)
-//            outputStream?.open()
-//
-//        } catch {
-//
-//        }
+    CVPixelBufferLockBaseAddress(imageBuffer, CVPixelBufferLockFlags(rawValue: 0))
+    guard let baseAddress:UnsafeMutableRawPointer = CVPixelBufferGetBaseAddressOfPlane(imageBuffer, 0) else {
+        return
+    }
+    
+    let bytesPerRow = CVPixelBufferGetBytesPerRow(imageBuffer)
+    let height = CVPixelBufferGetHeight(imageBuffer)
+    let data = NSData(bytes: baseAddress, length: bytesPerRow * height)
+    let unsafePointer = data.bytes.bindMemory(to: UInt8.self, capacity: 1)
+    
+    
+    
+//        try? session?.send(data as Data, toPeers: (session?.connectedPeers)!, with: .reliable)
+    
+    do {
+
+        outputStream = try session?.startStream(withName: "stream", toPeer: (session?.connectedPeers.first)!)
+        outputStream?.delegate = self
+        outputStream?.write(unsafePointer, maxLength: data.length)
+        outputStream?.schedule(in: .main, forMode: RunLoop.Mode.default)
+        outputStream?.open()
+
+    } catch {
 
     }
+
+}
     
 }
 
 extension PeerUtil: MCNearbyServiceBrowserDelegate {
     
     func browser(_ browser: MCNearbyServiceBrowser, foundPeer peerID: MCPeerID, withDiscoveryInfo info: [String : String]?) {
-        
-        print("foundPeer::\(peerID.displayName)")
         
         remotePeerId = peerID
         delegate?.peerFound(displayName: peerID.displayName)
@@ -273,64 +234,15 @@ extension PeerUtil: MCSessionDelegate {
         
     }
     
+    
+
     func session(_ session: MCSession, didReceive data: Data, fromPeer peerID: MCPeerID) {
-        print("didReceive")
         
         let responseString = NSString(data: data, encoding: String.Encoding.utf8.rawValue)! as String
         if let imageData = Data(base64Encoded: responseString, options: []) {
             let image = UIImage(data: imageData)
             delegate?.setRemoteView(image: image!)
         }
-        
-//        let responseData = responseString.data(using: String.Encoding.utf8)
-//        do {
-//            let dictionary = try JSONSerialization.jsonObject(with: responseData!, options: []) as? [String: Any]
-//            let keyValue = dictionary?.keys.first
-//            switch keyValue {
-//            case "offerSDP":
-//                let value = dictionary!["offerSDP"] as? [String: Any]
-//                print("pass2\(String(describing: value))")
-//                delegate?.receivedOffer2(dictionary: value!)
-//            case "answerSDP":
-//                let value = dictionary!["answerSDP"] as? [String: Any]
-//                delegate?.receivedAnswer2(dictionary: value!)
-//            case "iceCandidate":
-//                let value = dictionary!["iceCandidate"] as? [String: Any]
-//                delegate?.receivedCandidate2(dictionary: value!)
-//            default:
-//                break
-//            }
-//        } catch {
-//
-//        }
-        
-        //        do {
-        //
-        //            let dic = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
-        //            let model: MultiPeer = try unbox(dictionary: dic!)
-        //            switch model.dataType {
-        //            case MultiPeerDataType.offerOfWebRTC.rawValue:
-        //
-        //                delegate?.receivedOffer(data: model)
-        //
-        //            case MultiPeerDataType.answerOfWebRTC.rawValue:
-        //
-        //                delegate?.receivedAnswer(data: model)
-        //
-        //            case MultiPeerDataType.candidateOfWebRTC.rawValue:
-        //
-        //                delegate?.receivedCandidate(data: model)
-        //
-        //            case MultiPeerDataType.disconnectOfWebRTC.rawValue:
-        //
-        //                delegate?.receivedDisconnected(data: model)
-        //
-        //            default: break
-        //            }
-        //
-        //
-        //        } catch {
-        //        }
         
     }
     

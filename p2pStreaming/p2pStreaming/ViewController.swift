@@ -3,21 +3,27 @@ import AVFoundation
 
 class ViewController: UIViewController {
     
-    var previewLayer: AVCaptureVideoPreviewLayer?
-    let sampleBufferDisplayLayer = AVSampleBufferDisplayLayer()
-    var peerUtil:PeerUtil!
-
     @IBOutlet weak var cameraBtn: UIButton!
-    @IBOutlet weak var startBtn: UIButton!
-    
     @IBOutlet weak var advertisingBtn: UIButton!
     @IBOutlet weak var browsingBtn: UIButton!
+    
     @IBOutlet weak var localView: UIView!
     @IBOutlet weak var remoteView: UIView!
     @IBOutlet weak var remoteImageVIew: UIImageView!
     
+    @IBOutlet weak var coverView: UIView!
+    
+    var previewLayer: AVCaptureVideoPreviewLayer?
+    let sampleBufferDisplayLayer = AVSampleBufferDisplayLayer()
+    
+    var peerUtil:PeerUtil!
     var camera:Camera?
-
+    
+    let w:CGFloat = 30.0
+    let h:CGFloat = 40.0
+    var x:CGFloat = 0.0
+    var y:CGFloat = 0.0
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -37,13 +43,33 @@ class ViewController: UIViewController {
             advertisingBtn.isHidden = false
             
         }
+        
+        localView.isHidden = true
+        remoteView.isHidden = true
 
         camera = Camera()
         camera?.cameraDelegate = self
     }
 
-    @IBAction func pushStartBtn(_ sender: Any) {
-        peerUtil.startStream()
+    @IBAction func pushAllStopBtn(_ sender: Any) {
+        
+        //ui制御
+        let subviews = coverView.subviews
+        for subview in subviews {
+            subview.removeFromSuperview()
+        }
+        self.x = 0
+        self.y = 0
+        coverView.isHidden = false
+        
+        camera?.stop()
+        peerUtil.session?.disconnect()
+        peerUtil.stopAdvertise()
+        peerUtil.stopBrowsering()
+        self.localView.isHidden = true
+        self.remoteView.isHidden = true
+        self.remoteImageVIew.image = nil
+        
     }
     
     @IBAction func pushCameraBtn(_ sender: Any) {
@@ -82,16 +108,31 @@ class ViewController: UIViewController {
 
 extension ViewController: CameraDelegate {
     
+    func setRemoteView2(image:UIImage) {
+        
+        DispatchQueue.main.async {
+            self.localView.isHidden = true
+            self.remoteView.isHidden = false
+            self.remoteImageVIew.image = image
+        }
+        
+    }
+    
     func setLocalView(session:AVCaptureSession) {
         
-        previewLayer = AVCaptureVideoPreviewLayer(session: session)
-        previewLayer?.videoGravity = AVLayerVideoGravity.resizeAspect
-        previewLayer?.connection?.videoOrientation = AVCaptureVideoOrientation.portrait
-        
-        localView.layer.addSublayer(previewLayer!)
-        
-        previewLayer?.position = CGPoint(x: self.localView.frame.width/2, y: self.localView.frame.height/2)
-        previewLayer?.bounds = localView.frame
+        DispatchQueue.main.async {
+            self.localView.isHidden = false
+            self.remoteView.isHidden = true
+            
+            self.previewLayer = AVCaptureVideoPreviewLayer(session: session)
+            self.previewLayer?.videoGravity = AVLayerVideoGravity.resizeAspect
+            self.previewLayer?.connection?.videoOrientation = AVCaptureVideoOrientation.portrait
+            
+            self.localView.layer.insertSublayer(self.previewLayer!, at: 0)
+            
+            self.previewLayer?.position = CGPoint(x: self.localView.frame.width/2, y: self.localView.frame.height/2)
+            self.previewLayer?.bounds = self.localView.frame
+        }
     }
 
 }
@@ -116,6 +157,9 @@ extension ViewController: PeerDelegate {
     
     func setRemoteView(sampleBuffer:CMSampleBuffer) {
         
+        localView.isHidden = true
+        remoteView.isHidden = false
+        
         DispatchQueue.main.async {
             self.sampleBufferDisplayLayer.bounds = self.remoteView.frame
             self.sampleBufferDisplayLayer.enqueue(sampleBuffer)
@@ -128,7 +172,35 @@ extension ViewController: PeerDelegate {
     func setRemoteView(image:UIImage) {
         
         DispatchQueue.main.async {
-            self.remoteImageVIew.image = image
+
+            if self.y > self.view.frame.height {
+                
+                if self.remoteView.isHidden {
+                    UIView.transition(with: self.coverView, duration: 1.0, options: [.transitionCurlUp], animations: { () in
+                        
+                        self.coverView.isHidden = true
+                        
+                    }, completion: { (bool) in
+                    })
+                }
+                
+                self.localView.isHidden = true
+                self.remoteView.isHidden = false
+                self.remoteImageVIew.image = image
+
+            } else {
+                
+                let imageView = UIImageView(frame: CGRect(x: self.x, y: self.y, width: self.w, height: self.h))
+                imageView.image = image
+                self.coverView.addSubview(imageView)
+                self.x = self.x + self.w
+                if self.x > self.coverView.frame.width {
+                    self.x = 0
+                    self.y = self.y + self.h
+                }
+ 
+            }
+            
         }
         
     }

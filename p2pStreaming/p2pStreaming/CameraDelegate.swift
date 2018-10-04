@@ -5,10 +5,12 @@ import MultipeerConnectivity
 
 protocol CameraDelegate {
     func setLocalView(session:AVCaptureSession)
+    func setRemoteView2(image:UIImage)
 }
 
 extension CameraDelegate {
     func setLocalView(session:AVCaptureSession) {}
+    func setRemoteView2(image:UIImage) {}
 }
 
 class Camera: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
@@ -19,17 +21,17 @@ class Camera: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     var previewLayer: AVCaptureVideoPreviewLayer?
     var isRecording = false
     var numOfCapture = 0
-    var connection:AVCaptureConnection? = nil
-    var outputStream:OutputStream? = nil
+    //var connection:AVCaptureConnection? = nil
+    //var outputStream:OutputStream? = nil
     var sender:PeerUtil? = nil
     
     var cameraDelegate: CameraDelegate?
     
-    func createOutputStream(os: OutputStream) {
-        
-        outputStream = os
-        
-    }
+//    func createOutputStream(os: OutputStream) {
+//
+//        outputStream = os
+//
+//    }
     
     func set() {
 
@@ -39,21 +41,18 @@ class Camera: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
 
         do {
             
-            NotificationCenter.default.removeObserver(self, name: UIDevice.orientationDidChangeNotification, object: nil)
+            //NotificationCenter.default.removeObserver(self, name: UIDevice.orientationDidChangeNotification, object: nil)
             //NotificationCenter.default.addObserver(self, selector: #selector(cahngeOrientation(_:)), name: UIDevice.orientationDidChangeNotification, object: nil)
             
-            let videoInput = try AVCaptureDeviceInput(device: self.videoDevice!) as AVCaptureDeviceInput
-            self.captureSession.addInput(videoInput)
-            self.captureSession.addOutput(self.captureOutput)
-            connection = self.captureOutput.connection(with: AVMediaType.video)
+            let videoInput = try AVCaptureDeviceInput(device: videoDevice!) as AVCaptureDeviceInput
+            captureSession.addInput(videoInput)
+            captureSession.addOutput(captureOutput)
+            //connection = self.captureOutput.connection(with: AVMediaType.video)
             //connection?.videoOrientation = appOrientation()
-            self.captureSession.sessionPreset = AVCaptureSession.Preset.vga640x480
-            
-            self.captureOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as AnyHashable as! String : Int(kCVPixelFormatType_32BGRA)]
-            
-            self.captureOutput.setSampleBufferDelegate(self as AVCaptureVideoDataOutputSampleBufferDelegate, queue: DispatchQueue.main)
-            
-            self.captureOutput.alwaysDiscardsLateVideoFrames = true
+            captureSession.sessionPreset = AVCaptureSession.Preset.vga640x480
+            captureOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as AnyHashable as! String : Int(kCVPixelFormatType_32BGRA)]
+            captureOutput.setSampleBufferDelegate(self as AVCaptureVideoDataOutputSampleBufferDelegate, queue: DispatchQueue.main)
+            captureOutput.alwaysDiscardsLateVideoFrames = true
             
         }
         catch{
@@ -84,14 +83,16 @@ class Camera: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         
+        //if numOfCapture == 1 {
         
-        if numOfCapture == 1 {
-            
             guard let image:UIImage = self.captureImage(sampleBuffer: sampleBuffer) else {
                 return
             }
-            
-            if let imageData = image.jpegData(compressionQuality: 0.1) {
+        
+        
+            //cameraDelegate?.setRemoteView2(image:image)
+        
+            if let imageData = image.jpegData(compressionQuality: 0.0) {
                 
                 let encodeString:String = imageData.base64EncodedString(options: [])
                 let data = encodeString.data(using: .utf8)
@@ -102,7 +103,7 @@ class Camera: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
             
             numOfCapture = 0
             
-        }
+        //}
         
         numOfCapture = numOfCapture + 1
         
@@ -135,25 +136,25 @@ class Camera: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
         
         // キャプチャーされる画像は常に上下反転している。
         // UIImageOrientationは画像のメタデータである方向を設定している。.downを設定することで、方向を3(180°回転)に設定する。
-        let deviceOrientation = UIDevice.current.orientation.rawValue == 3 ? UIImage.Orientation.down : UIImage.Orientation.down
+        //let deviceOrientation = UIDevice.current.orientation.rawValue == 3 ? UIImage.Orientation.down : UIImage.Orientation.down
         
-        let resultImage = UIImage(cgImage: imageRef, scale: 0.1, orientation:deviceOrientation)
+        let resultImage = UIImage(cgImage: imageRef, scale: 0.0, orientation:UIImage.Orientation.right)
         
         return resultImage
     }
     
-    func appOrientation() -> AVCaptureVideoOrientation {
-        
-        switch UIApplication.shared.statusBarOrientation {
-        case UIInterfaceOrientation.landscapeLeft:
-            return AVCaptureVideoOrientation.landscapeLeft
-        case UIInterfaceOrientation.landscapeRight:
-            return AVCaptureVideoOrientation.landscapeRight
-        default:
-            return AVCaptureVideoOrientation.landscapeRight
-        }
-        
-    }
+//    func appOrientation() -> AVCaptureVideoOrientation {
+//
+//        switch UIApplication.shared.statusBarOrientation {
+//        case UIInterfaceOrientation.landscapeLeft:
+//            return AVCaptureVideoOrientation.landscapeLeft
+//        case UIInterfaceOrientation.landscapeRight:
+//            return AVCaptureVideoOrientation.landscapeRight
+//        default:
+//            return AVCaptureVideoOrientation.landscapeRight
+//        }
+//
+//    }
     
 //    @objc
 //    func cahngeOrientation(_ notify:Notification) {

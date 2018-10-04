@@ -6,8 +6,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
     var peerUtil: PeerUtil?
     
-    // true:browsing and offer
-    // false:advertising and answer
+    // true:browsing
+    // false:advertising
     var initiator = true
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
