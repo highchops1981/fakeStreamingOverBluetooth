@@ -8,7 +8,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     
     // true:browsing
     // false:advertising
-    var initiator = true
+    var initiator = false
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
 

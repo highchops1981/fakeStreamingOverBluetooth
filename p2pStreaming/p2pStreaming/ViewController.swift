@@ -186,6 +186,7 @@ extension ViewController: PeerDelegate {
                 
                 self.localView.isHidden = true
                 self.remoteView.isHidden = false
+                self.remoteImageVIew.layer.contentsGravity = CALayerContentsGravity.resizeAspect
                 self.remoteImageVIew.image = image
 
             } else {

@@ -41,13 +41,13 @@ class Camera: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
 
         do {
             
-            //NotificationCenter.default.removeObserver(self, name: UIDevice.orientationDidChangeNotification, object: nil)
-            //NotificationCenter.default.addObserver(self, selector: #selector(cahngeOrientation(_:)), name: UIDevice.orientationDidChangeNotification, object: nil)
+//            NotificationCenter.default.removeObserver(self, name: UIApplication.didChangeStatusBarOrientationNotification, object: nil)
+//            NotificationCenter.default.addObserver(self, selector: #selector(cahngeOrientation(_:)), name: UIApplication.didChangeStatusBarOrientationNotification, object: nil)
             
             let videoInput = try AVCaptureDeviceInput(device: videoDevice!) as AVCaptureDeviceInput
             captureSession.addInput(videoInput)
             captureSession.addOutput(captureOutput)
-            //connection = self.captureOutput.connection(with: AVMediaType.video)
+            //connection = captureOutput.connection(with: AVMediaType.video)
             //connection?.videoOrientation = appOrientation()
             captureSession.sessionPreset = AVCaptureSession.Preset.vga640x480
             captureOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as AnyHashable as! String : Int(kCVPixelFormatType_32BGRA)]
@@ -83,29 +83,32 @@ class Camera: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         
+        let connection = output.connection(with: .video)
+        connection?.videoOrientation = appOrientation()
+        
+        guard let image:UIImage = captureImage(sampleBuffer: sampleBuffer) else {
+            return
+        }
+        //cameraDelegate?.setRemoteView2(image:image)
+        
         //if numOfCapture == 1 {
         
-            guard let image:UIImage = self.captureImage(sampleBuffer: sampleBuffer) else {
-                return
-            }
+        //cameraDelegate?.setRemoteView2(image:image)
+
+        if let imageData = image.jpegData(compressionQuality: 0.0) {
+
+            let encodeString:String = imageData.base64EncodedString(options: [])
+            let data = encodeString.data(using: .utf8)
+
+            sender?.send(data: data!)
+
+        }
         
-        
-            //cameraDelegate?.setRemoteView2(image:image)
-        
-            if let imageData = image.jpegData(compressionQuality: 0.0) {
-                
-                let encodeString:String = imageData.base64EncodedString(options: [])
-                let data = encodeString.data(using: .utf8)
-                
-                sender?.send(data: data!)
-                
-            }
-            
-            numOfCapture = 0
+            //numOfCapture = 0
             
         //}
         
-        numOfCapture = numOfCapture + 1
+        //numOfCapture = numOfCapture + 1
         
     }
 
@@ -138,29 +141,39 @@ class Camera: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
         // UIImageOrientationは画像のメタデータである方向を設定している。.downを設定することで、方向を3(180°回転)に設定する。
         //let deviceOrientation = UIDevice.current.orientation.rawValue == 3 ? UIImage.Orientation.down : UIImage.Orientation.down
         
-        let resultImage = UIImage(cgImage: imageRef, scale: 0.0, orientation:UIImage.Orientation.right)
+        //let resultImage = UIImage(cgImage: imageRef, scale: 0.0, orientation:UIImage.Orientation.right)
+        let resultImage = UIImage(cgImage: imageRef)
         
         return resultImage
     }
     
-//    func appOrientation() -> AVCaptureVideoOrientation {
-//
-//        switch UIApplication.shared.statusBarOrientation {
-//        case UIInterfaceOrientation.landscapeLeft:
-//            return AVCaptureVideoOrientation.landscapeLeft
-//        case UIInterfaceOrientation.landscapeRight:
-//            return AVCaptureVideoOrientation.landscapeRight
-//        default:
-//            return AVCaptureVideoOrientation.landscapeRight
-//        }
+//    @objc
+//    func cahngeOrientation(_ notify:Notification) {
+//        print("cahngeOrientation")
+//        connection?.videoOrientation = appOrientation()
 //
 //    }
     
-//    @objc
-//    func cahngeOrientation(_ notify:Notification) {
-//        
-//        connection?.videoOrientation = appOrientation()
-//        
-//    }
+}
+
+func appOrientation() -> AVCaptureVideoOrientation {
+    
+    switch UIApplication.shared.statusBarOrientation {
+    case UIInterfaceOrientation.landscapeLeft:
+        print("landscapeLeft")
+        return AVCaptureVideoOrientation.landscapeLeft
+    case UIInterfaceOrientation.landscapeRight:
+        print("landscapeRight")
+        return AVCaptureVideoOrientation.landscapeRight
+    case UIInterfaceOrientation.portrait:
+        print("portrait")
+        return AVCaptureVideoOrientation.portrait
+    case UIInterfaceOrientation.portraitUpsideDown:
+        print("portraitUpsideDown")
+        return AVCaptureVideoOrientation.portraitUpsideDown
+    default:
+        print("landscapeRight")
+        return AVCaptureVideoOrientation.landscapeRight
+    }
     
 }
