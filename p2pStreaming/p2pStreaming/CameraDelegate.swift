@@ -142,7 +142,9 @@ class Camera: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
         //let deviceOrientation = UIDevice.current.orientation.rawValue == 3 ? UIImage.Orientation.down : UIImage.Orientation.down
         
         //let resultImage = UIImage(cgImage: imageRef, scale: 0.0, orientation:UIImage.Orientation.right)
+
         let resultImage = UIImage(cgImage: imageRef)
+        CVPixelBufferUnlockBaseAddress(imageBuffer, CVPixelBufferLockFlags(rawValue: 0))
         
         return resultImage
     }
